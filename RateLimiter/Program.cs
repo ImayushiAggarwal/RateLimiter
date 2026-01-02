@@ -7,6 +7,11 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseMiddleware<TokenBucketRateLimiterMiddleware>();
+
+// 👇 Test endpoint
+app.MapGet("/test", () => "Request Accepted!");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -15,6 +20,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+
 
 var summaries = new[]
 {
