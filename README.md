@@ -1,84 +1,56 @@
-Distributed Rate Limiter & High-Throughput Batch Processing
+# 🚦 Distributed Rate Limiter
 
-A production-oriented .NET rate-limiting playground that evolves a simple custom Token Bucket into a configurable, testable, observable, and distributed throttling platform.
+A production-oriented ASP.NET Core / .NET 10 rate limiting system that demonstrates how to design, implement, test, and scale rate limiting from a simple in-memory Token Bucket to a **distributed, configurable, observable, and highly concurrent system**.
 
-The project combines two complementary approaches:
+The project combines a **custom rate limiter implementation** with .NET's built-in `System.Threading.RateLimiting` APIs and explores batch processing, concurrency control, backpressure, Redis-based distributed state, observability, and performance testing.
 
-1. Custom algorithms** to understand and implement rate-limiting mechanics from first principles.
-2. System.Threading.RateLimiting to demonstrate idiomatic .NET primitives such as token buckets, queued permits, cancellation, and concurrency controls.
+> **Core engineering problem:** How do we control request throughput correctly when thousands of requests arrive concurrently and multiple API instances are running?
 
-The end goal is to answer a practical distributed-systems question:
+---
 
-How do we keep throughput controlled and behavior correct when traffic is concurrent, queued, cancelled, and horizontally scaled across multiple API instances?
+## ✨ Quick Features
 
- What this project demonstrates
-
-- ASP.NET Core middleware and dependency injection
-- Custom Token Bucket implementation
-- .NET `System.Threading.RateLimiting` integration
-- Token Bucket, Fixed Window, Sliding Window and Concurrency limiting
-- Configurable policies by endpoint/client/API key/user/tenant
-- `IRateLimiter`, `IRateLimitStore`, and key-resolution abstractions
-- In-memory and Redis-backed distributed state
-- Atomic Redis operations and Lua scripting
-- Async programming with `async/await`, `ValueTask`, and `CancellationToken`
-- `Parallel.ForEachAsync` for bounded concurrent processing
-- `Channel<T>` for producer/consumer pipelines and backpressure
-- `BackgroundService` for long-running workers
-- Batch processing with queue limits and permit acquisition
-- 429 responses with `Retry-After` and RateLimit headers
-- ProblemDetails responses
-- Structured logging and correlation
-- OpenTelemetry metrics, traces and logs
-- Health checks and graceful shutdown
-- Unit, integration, concurrency and distributed tests
-- BenchmarkDotNet and load testing with k6/NBomito
-- Docker Compose for API + Redis + observability dependencies
-- GitHub Actions CI/CD
-- ADRs and architecture documentation
-
-## Architecture
+* ✅ **Token Bucket Rate Limiter** — Custom implementation from first principles
+* ✅ **Multiple Algorithms** — Token Bucket, Fixed Window, Sliding Window and Concurrency Limiter
+* ✅ **.NET RateLimiter Integration** — Uses `System.Threading.RateLimiting`
+* ✅ **Configurable Policies** — Different limits for endpoints, users, API keys and tenants
+* ✅ **Batch Processing** — Process large workloads with controlled throughput
+* ✅ **Async Processing** — `async/await`, `CancellationToken` and `ValueTask`
+* ✅ **Bounded Concurrency** — `Parallel.ForEachAsync` and configurable worker limits
+* ✅ **Backpressure** — Bounded `Channel<T>` producer/consumer pipeline
+* ✅ **Background Workers** — `BackgroundService` based processing
+* ✅ **Distributed Rate Limiting** — Redis-backed shared rate-limit state
+* ✅ **Atomic Redis Operations** — Redis transactions/Lua scripts for consistency
+* ✅ **HTTP 429 Handling** — `Retry-After` and RateLimit response headers
+* ✅ **ProblemDetails** — Standardized API error responses
+* ✅ **Thread Safety** — `ConcurrentDictionary`, `Interlocked`, `SemaphoreSlim`
+* ✅ **Real-time Metrics** — Request, rejection, queue and throughput metrics
+* ✅ **OpenTelemetry** — Metrics, traces and structured observability
+* ✅ **Health Checks** — Liveness and readiness endpoints
+* ✅ **Failure Handling** — Fail-open/fail-closed strategies
+* ✅ **Unit & Integration Tests** — Including concurrency and distributed scenarios
+* ✅ **Performance Testing** — BenchmarkDotNet + k6/NBomito
+* ✅ **Docker Support** — API + Redis distributed environment
+* ✅ **CI/CD** — GitHub Actions build and test pipeline
 
 
-                         ┌─────────────────────┐
-                         │      Clients        │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │   ASP.NET Core API  │
-                         │ Middleware/Endpoints│
-                         └──────────┬──────────┘
-                                    │
-                         ┌──────────▼──────────┐
-                         │ Rate Limit Key      │
-                         │ Resolver            │
-                         └──────────┬──────────┘
-                                    │
-                         ┌──────────▼──────────┐
-                         │ Policy Provider     │
-                         │ endpoint/client     │
-                         └──────────┬──────────┘
-                                    │
-                   ┌────────────────▼────────────────┐
-                   │        Rate Limiter Engine      │
-                   │ Token | Fixed | Sliding | Concurrency
-                   └────────────────┬────────────────┘
-                                    │
-                         ┌──────────▼──────────┐
-                         │   Rate Limit Store  │
-                         │ Memory / Redis      │
-                         └──────────┬──────────┘
-                                    │
-                       ┌────────────▼────────────┐
-                       │ Batch / Job Processing  │
-                       │ Parallel.ForEachAsync   │
-                       │ Channel<T> + Workers    │
-                       └────────────┬────────────┘
-                                    │
-                                    ▼
-                            ┌───────────────┐
-                            │ Downstream API│
-                            └───────────────┘
 
-        Observability: OpenTelemetry → Metrics / Traces / Logs
+# 🎯 Project Overview
+
+Rate limiting is used to protect APIs and downstream services from excessive traffic.
+
+A simple implementation can look like:
+
+```text
+Request
+   ↓
+Check Token
+   ↓
+Token Available?
+   ├── Yes → Process Request
+   └── No  → Reject / Queue
+```
+
+But real production systems introduce additional problems:
+
+* What happens when 10,000 requests arrive
